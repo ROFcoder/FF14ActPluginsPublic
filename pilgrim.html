@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>朝圣交错路 T71-T99</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: transparent; overflow: hidden;
+  }
+  body {
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-size: 12px; color: #e8e8e8;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #box {
+    position: relative;
+    background: rgba(16, 18, 24, 0.85);
+    border: 1px solid rgba(120, 170, 255, 0.35);
+    border-radius: 6px;
+    height: 100%; box-sizing: border-box;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  #head {
+    flex: 0 0 auto;
+    display: flex; align-items: baseline;
+    flex-wrap: wrap; row-gap: 3px;
+    padding: 6px 9px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  #floor { font-weight: 700; font-size: 13px; color: #9ecbff; margin-right: 8px; white-space: nowrap; }
+  #zone { flex: 1 1 120px; min-width: 0; color: #ffd479; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #state { flex: 0 0 auto; margin-left: 8px; padding: 1px 7px; border-radius: 10px; font-weight: 700; background: #333a49; color: #aab3c5; }
+  #state.on { background: #b8342c; color: #fff; }
+  #traps { flex: 0 0 auto; margin-left: 8px; padding: 1px 7px; border-radius: 10px; font-weight: 700; background: #4a3a5e; color: #d9c2f0; white-space: nowrap; }
+  #traps.cleared { background: #2f4f3a; color: #9fe0b0; }
+  #voice { flex: 0 0 auto; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-weight: 700; background: #2f4f3a; color: #9fe0b0; cursor: pointer; }
+  #voice.off { background: #333a49; color: #6b7383; }
+  #cfgBtn { flex: 0 0 auto; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-weight: 700; background: #2c3a52; color: #9ecbff; cursor: pointer; }
+  #cfgBtn.open { background: #3d5a80; color: #fff; }
+  #foldBtn { flex: 0 0 auto; margin-left: 6px; padding: 1px 7px; border-radius: 10px; font-weight: 700; background: #333a49; color: #aab3c5; cursor: pointer; }
+  #foldBtn:hover { background: #3d4658; color: #dfe4ec; }
+
+  #mini {
+    display: none; position: absolute; top: 4px; left: 4px;
+    width: 42px; height: 42px; box-sizing: border-box;
+    align-items: center; justify-content: center;
+    background: rgba(16, 18, 24, 0.85);
+    border: 1px solid rgba(120, 170, 255, 0.35);
+    border-radius: 10px; cursor: pointer;
+  }
+  body.folded #box { display: none; }
+  body.folded #mini { display: flex; }
+  #mini:hover { border-color: rgba(120, 170, 255, 0.85); background: rgba(26, 30, 42, 0.92); }
+  #mini.combat { border-color: rgba(217, 83, 79, 0.85); animation: miniPulse 1.1s ease-in-out infinite; }
+  @keyframes miniPulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(217, 83, 79, 0.30); }
+    50% { box-shadow: 0 0 13px rgba(217, 83, 79, 0.75); }
+  }
+  #miniFloor {
+    position: absolute; right: -6px; bottom: -6px;
+    min-width: 15px; padding: 0 3px; box-sizing: border-box;
+    font-size: 10px; font-weight: 700; line-height: 14px; text-align: center;
+    background: #2c3a52; color: #ffd479;
+    border: 1px solid rgba(120, 170, 255, 0.45); border-radius: 8px;
+  }
+
+  #cfgPanel {
+    display: none;
+    position: absolute; top: 30px; right: 6px; z-index: 10;
+    width: 178px; box-sizing: border-box;
+    padding: 7px 9px 8px;
+    background: rgba(14, 16, 22, 0.97);
+    border: 1px solid rgba(120, 170, 255, 0.45);
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+  }
+  #cfgPanel.open { display: block; }
+  .cfgTitle { font-weight: 700; color: #9ecbff; margin-bottom: 4px; }
+  .cfgRow { display: flex; align-items: center; padding: 3px 0; color: #dfe4ec; cursor: pointer; }
+  .cfgRow input[type=checkbox] { margin: 0 6px 0 0; }
+  .cfgPctRow { cursor: default; padding-left: 15px; }
+  .cfgPctRow input {
+    width: 42px; margin: 0 4px; padding: 1px 4px;
+    background: #1b1f28; color: #fff;
+    border: 1px solid rgba(255,255,255,0.22); border-radius: 3px;
+    font: inherit;
+  }
+  .cfgHint { color: #8b93a5; line-height: 1.45; margin-top: 3px; }
+  .cfgNote { color: #6b7383; line-height: 1.4; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+  #list { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 4px 6px 6px; }
+  #list::-webkit-scrollbar { width: 4px; }
+  #list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
+
+  #empty { color: #6b7383; padding: 8px 4px; line-height: 1.6; }
+
+  .card {
+    border: 1px solid rgba(255,255,255,0.10);
+    border-left: 3px solid #4a5568;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background: rgba(255,255,255,0.03);
+    overflow: hidden;
+  }
+  .card.boss { border-left-color: #d9534f; }
+  .card.hate { border-left-color: #e05561; }
+  .card.casting { border-left-color: #ff9d4d; background: rgba(255,157,77,0.10); }
+  .card.fired { border-left-color: #7ee0c0; }
+
+  .chead {
+    display: flex; align-items: baseline;
+    padding: 3px 6px; cursor: pointer;
+  }
+  .cname { font-weight: 700; color: #fff; margin-right: 6px; white-space: nowrap; }
+  .card.boss .cname { color: #ff9a9a; }
+  .ctag { color: #8b93a5; font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1 1 auto; min-width: 0; }
+  .cnum { color: #6b7383; font-size: 11px; margin-left: 6px; flex: 0 0 auto; }
+  .chate {
+    flex: 0 0 auto; margin-left: 6px; font-size: 10px; font-weight: 700;
+    padding: 0 5px; border-radius: 8px; background: #5e2a30; color: #ff9d9d;
+  }
+
+  .skill { padding: 2px 6px 3px 9px; border-top: 1px solid rgba(255,255,255,0.05); }
+  .skill.active { background: rgba(255,157,77,0.16); }
+  .skill.flash { background: rgba(126,224,192,0.16); }
+
+  .sline { display: flex; align-items: baseline; }
+  .sname { font-weight: 600; color: #dfe4ec; margin-right: 5px; white-space: nowrap; }
+  .skill.active .sname { color: #ffc48a; }
+  .stype { font-size: 10px; padding: 0 4px; border-radius: 3px; margin-right: 5px; white-space: nowrap; flex: 0 0 auto; }
+  .stype.phys { background: #5a3038; color: #ff9d9d; }
+  .stype.mag  { background: #2f3f5e; color: #9dc4ff; }
+  .stype.none { background: #3a3f4a; color: #aab3c5; }
+  .scast { margin-left: auto; flex: 0 0 auto; font-variant-numeric: tabular-nums; color: #ffc48a; font-weight: 700; }
+
+  .sdesc {
+    color: #a8b0c0; line-height: 1.45; margin-top: 1px;
+    display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; overflow: hidden;
+  }
+  .card.open .sdesc, .skill.active .sdesc { -webkit-line-clamp: unset; }
+  .sdesc b { color: #ffd479; font-weight: 600; }
+
+  .bar { height: 2px; background: rgba(255,255,255,0.10); margin-top: 2px; border-radius: 1px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: #ff9d4d; width: 100%; }
+
+  .note { padding: 2px 6px 3px 9px; color: #8b93a5; line-height: 1.45; border-top: 1px solid rgba(255,255,255,0.05); }
+  .intro { padding: 3px 6px; color: #ffd479; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.05); }
+</style>
+</head>
+<body>
+<div id="box">
+  <div id="head">
+    <div id="floor">--</div>
+    <div id="zone">朝圣交错路</div>
+    <div id="traps" title="本层已发现且未触发的陷阱数。陷阱只在靠近时才下发，随探索增加；踩中后扣减。重载悬浮窗会重新计数。">陷阱 --</div>
+    <div id="state">未连接</div>
+    <div id="voice" title="点击开关语音播报">语音</div>
+    <div id="cfgBtn" title="播报开关与低血量阈值">设置</div>
+    <div id="foldBtn" title="折叠为小图标">收起</div>
+  </div>
+  <div id="cfgPanel">
+    <div class="cfgTitle">播报设置</div>
+    <label class="cfgRow" title="读条与无读条技能提示、自身诅咒提醒"><input type="checkbox" id="cfgMech">机制播报</label>
+    <label class="cfgRow"><input type="checkbox" id="cfgDeath">队友死亡</label>
+    <label class="cfgRow"><input type="checkbox" id="cfgLow">低血量预警</label>
+    <div class="cfgRow cfgPctRow"><span>阈值</span><input type="number" id="cfgPct" min="1" max="99" step="1"><span>%</span></div>
+    <div class="cfgHint" id="cfgHint"></div>
+    <div class="cfgNote">右上「语音」为总开关，关闭后全部静音。</div>
+  </div>
+  <div id="list"><div id="empty">等待进入朝圣交错路…<br>数据范围：第71～99朝圣路（39 种敌人 + 第80/90/99 BOSS + 4 个特殊条目）</div></div>
+</div>
+
+<div id="mini" title="点击展开悬浮窗">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 20 C 9 14, 15 10, 20 4" stroke="#9ecbff" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M4 4 C 9 10, 15 14, 20 20" stroke="#ffd479" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="2.4" fill="#e8e8e8"/>
+  </svg>
+  <span id="miniFloor"></span>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // 技能说明转录自 ff14.huijiwiki.com 朝圣交错路条目，【】内为 debuff 名。
+  // t: phys 物理 / mag 魔法 / none 不造成伤害
+  var MOBS = {
+    '交错路食岩狼': { tag: '巡逻', sk: [
+      { n: '轻快冲', t: 'phys', d: '无读条的对一仇的单体伤害技并跳向其位置，附加15s【中毒】，带有长距离击退，防击退有效。' }]},
+    '交错路泡沫奶黄怪': { sk: [
+      { n: '烈炎', t: 'mag', d: '对随机玩家位置释放的可见圆形AOE。' }]},
+    '交错路铰颌蚁': { sk: [
+      { n: '喷沙', t: 'mag', d: '前方扇形AOE，范围提示在读条即将结束时出现，附加15s【命中率降低】。' }]},
+    '得到宽恕的怀疑': { model: '中音巨鳄', sk: [
+      { n: '粉碎锐牙', t: 'phys', d: '无读条的对一仇的单体大伤害技能，33%血量以下时连续使用，伴随自动攻击。' },
+      { n: '砂砾雨', t: 'mag', d: '前方直线AOE，范围提示在读条即将结束时出现。' }]},
+    '交错路爆岩怪': { tag: '巡逻', note: ['免疫击退效果。', '受到致死伤害后发动自爆；睡眠状态下不会发动。'], sk: [
+      { n: '炸裂', t: 'mag', d: '周身圆形AOE，范围提示在读条即将结束时出现。' },
+      { n: '自爆', t: 'mag', d: '受到会使生命值为0的攻击后进入不可选中状态，发动周身大范围圆形AOE，范围提示在读条即将结束时出现，带有距离衰减性质，10m以外为小量伤害。若受到致死伤害时处于【睡眠】状态，将会被直接打倒且不会发动自爆。' }]},
+    '得到宽恕的恶意': { sk: [
+      { n: '圆环双水流', t: 'mag', d: '周身不可见圆形AOE，随后施放大范围不可见环形AOE。' },
+      { n: '环圆双水流', t: 'mag', d: '大范围不可见环形AOE，随后施放周身不可见圆形AOE。' }]},
+    '得到宽恕的傲慢': { tag: '巡逻', model: '迪戈泰塔斯', sk: [
+      { n: '连踢', t: 'phys', d: '向前方连续发动四次的小范围扇形AOE，范围提示在读条即将结束时出现。' }]},
+    '交错路巨虫': { tag: '听觉感知', sk: [
+      { n: '地震', t: 'phys', d: '周身圆形AOE，范围提示在读条即将结束时出现。' }]},
+    '交错路阿米特': { model: '利刃醋蝎龙', sk: [
+      { n: '推翻', t: 'mag', d: '周身圆形AOE，范围提示在读条即将结束时出现。' }]},
+    '得到宽恕的争执': { model: '有生命巨石', sk: [
+      { n: '迅猛回旋', t: 'phys', d: '周身圆形AOE，范围提示在读条即将结束时出现。' },
+      { n: '呵斥', t: 'phys', d: '前方大范围扇形AOE，范围提示在读条即将结束时出现。' }]},
+    '得到宽恕的腐败': { model: '食腐鸦', sk: [
+      { n: '旋转火力', t: 'mag', warn: '当心旋转火力', d: '非战斗状态下释放的长读条大范围高伤害AOE，附加击退，无法穿透墙壁，可被打断。' },
+      { n: '正面火力', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' }]},
+    '得到宽恕的虚夸': { tag: '范围感知', model: '石灰灵', note: ['眩晕无效，睡眠有效。'], sk: [
+      { n: '环状射线', t: 'mag', d: '约4.7秒读条，带有光芒环形动画提示的大范围环形AOE，无法穿透墙壁。' },
+      { n: '十字射线', t: 'mag', d: '约4.7秒读条，带有十字叉动画提示的大范围十字AOE，无法穿透墙壁。' }]},
+    '得到宽恕的诋毁': { tag: '范围感知', model: '月壤', sk: [
+      { n: '造山风暴', t: 'mag', d: '对随机玩家位置释放的较大的圆形AOE，范围提示在读条即将结束时出现。' },
+      { n: '变质岩波', t: 'mag', d: '前方范围较远的扇形AOE，范围提示在读条即将结束时出现。' }]},
+
+    '交错路异豺': { sk: [
+      { n: '夜冲击', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' },
+      { n: '咬杀', t: 'phys', d: '30%血量以下且开怪大于30s使用，对一仇的极高伤害单体攻击，可打断，可以取消。' }]},
+    '召引格雷姆林': { sk: [
+      { n: '臭嘴', t: 'phys', d: '赋予一名玩家12s、50%的【减速】。' },
+      { n: '利爪', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' }]},
+    '交错路卡部斯': { sk: [
+      { n: '黑暗', t: 'mag', d: '对随机玩家位置释放范围可见圆形AOE，可被打断。' },
+      { n: '昏暗', t: 'mag', d: '前方大范围扇形AOE，无法穿透墙壁，可被打断。' }]},
+    '交错路骑兵': { tag: '巡逻 范围感知', model: '安可哈格', sk: [
+      { n: '残杀', t: 'phys', d: '随机点名一位玩家造成带强击退效果的长距离冲锋攻击（可被墙壁阻挡）。随后再靠近该玩家并连续发动三次带强击退的单体攻击。防击退均有效。' },
+      { n: '风暴斩', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' }]},
+    '召引小恶灵': { sk: [
+      { n: '虚空冰冻', t: 'mag', d: '对随机玩家位置释放范围可见圆形AOE，可被打断。' },
+      { n: '冰结陷阱', t: 'mag', d: '周身圆形AOE，范围提示在读条即将结束时出现，可被打断。常在无读条跳脸攻击后立即使用。' }]},
+    '召引梦魔': { tag: '巡逻', note: ['静止类 debuff（热病/加速度炸弹/慎行警告）：仅在原地取消选中并停止动作时，人物面向会随目标转动而被判定为移动。移动后再取消选中，或关闭「发动技能时转身面向目标」可避免。'], sk: [
+      { n: '攻心欲火', t: 'mag', d: '点名随机一名玩家的圆形AOE，赋予受到伤害的玩家3s【热病】（约100w一跳），可被取消。' }]},
+    '召引上级恶魔': { sk: [
+      { n: '深渊回转', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' },
+      { n: '深渊贯穿', t: 'phys', d: '对随机一名玩家发动远距离单体攻击，附加15s【麻痹】，可被打断。' }]},
+    '交错路卡玛': { sk: [
+      { n: '飞踢后摆尾', t: 'phys', d: '前方直线AOE，范围提示在读条即将结束时出现，随后快速释放后方不可见扇形AOE。' }]},
+    '召引盖因': { sk: [
+      { n: '大凶眼', t: 'none', d: '正面90°范围内出现该目标会被附加15s【石化】。' },
+      { n: '眼光弹', t: 'mag', d: '对随机玩家位置释放范围可见圆形AOE，会优先选择被石化的目标。' }]},
+    '召引刻耳柏洛斯': { sk: [
+      { n: '闪电', t: 'mag', d: '前方（以目标圈的前方为中心）圆形AOE，范围提示在读条即将结束时出现。' },
+      { n: '地狱爪袭', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' },
+      { n: '摆尾', t: 'phys', d: '后方扇形AOE，范围提示在读条即将结束时出现。' }]},
+    '召引巴尔': { sk: [
+      { n: '火山泥流爆', t: 'mag', warn: '当心火山泥流爆', d: '非战斗状态下释放的长读条大范围高伤害AOE，无法穿透墙壁，可被打断。' },
+      { n: '深渊射线', t: 'mag', d: '较宽的前方长直线AOE，范围提示在读条即将结束时出现，可穿透墙壁。' }]},
+    '召引行吟诗人': { tag: '范围感知', sk: [
+      { n: '心魔', t: 'mag', d: '周身圆形AOE，范围提示在读条即将结束时出现。' },
+      { n: '昏暗', t: 'mag', d: '读条较快的前方扇形AOE，范围提示在读条即将结束时出现，无法穿透墙壁，可被打断。' }]},
+    '召引洪巴巴': { tag: '巡逻', sk: [
+      { n: '三重强击', t: 'phys', d: '对一仇造成三次单体伤害，随后无读条释放长啸，不可取消。' },
+      { n: '四重强击', t: 'phys', d: '对一仇造成四次单体伤害，随后无读条释放长啸，不可取消。' },
+      { n: '长啸', t: 'mag', d: '前方大范围扇形AOE，无法穿透墙壁。' }]},
+
+    '召引梦祸': { note: ['免疫击退效果。', '受到致死伤害后发动死重爆；睡眠状态下不会发动。'], sk: [
+      { n: '梦祸视线', t: 'mag', d: '较细的前方长直线AOE，范围提示在读条即将结束时出现，可穿透墙壁。' },
+      { n: '死重爆', t: 'mag', d: '受到会使生命值为0的攻击后进入不可选中状态，发动周身大范围圆形AOE，范围提示在读条即将结束时出现，无法穿透墙壁。该攻击约35w伤害。若受到致死伤害时处于【睡眠】状态，将会被直接打倒且不会发动死重爆。' }]},
+    '交错路食人花': { tag: '听觉感知', sk: [
+      { n: '腐烂恶臭', t: 'mag', d: '较宽的前方长直线AOE，范围提示在读条即将结束时出现，可穿透墙壁。' },
+      { n: '黄金粉尘', t: 'mag', d: '对随机玩家位置释放的可见圆形AOE。' }]},
+    '交错路紫罗兰三尖树': { tag: '听觉感知', sk: [
+      { n: '藤枝伏地', t: 'phys', d: '前方扇形AOE，范围提示在读条即将结束时出现。' },
+      { n: '根系纠缠', t: 'phys', d: '对随机玩家位置释放的可见圆形AOE。' }]},
+    '召引玩偶': { tag: '巡逻', sk: [
+      { n: '呀——', t: 'mag', d: '周身圆形AOE，范围提示在读条即将结束时出现。' }]},
+    '召引扎哈克': { note: ['禁止去身后：有玩家在背后时会瞬发【尾部打击】。'], sk: [
+      { n: '石化吐息', t: 'mag', d: '前方大范围不可见扇形AOE，附加15s【石化】。' },
+      { n: '尾部打击', t: 'phys', d: '瞬发的后方大范围扇形AOE，当有玩家位于其后时使用。' }]},
+    '交错路座狼': { sk: [
+      { n: '三重猛击', t: 'phys', d: '对一仇造成三次单体伤害，随后无读条释放重挥碎击，不可取消。' },
+      { n: '四重猛击', t: 'phys', d: '对一仇造成四次单体伤害，随后无读条释放重挥碎击，不可取消。' },
+      { n: '重挥碎击', t: 'phys', d: '周身不可见圆形AOE。' }]},
+    '召引锯齿花': { tag: '巡逻 听觉感知', sk: [
+      { n: '前方花蜜喷吐', t: 'mag', d: '前方120°扇形AOE。' },
+      { n: '左侧花蜜喷吐', t: 'mag', d: '左后方释放的180°扇形AOE。' },
+      { n: '右侧花蜜喷吐', t: 'mag', d: '右后方释放的180°扇形AOE。' }]},
+    '召引光棍': { sk: [
+      { n: '阿剌克涅之网', t: 'mag', d: '点名随机一名玩家的圆形AOE，赋予受到伤害的玩家5s【加重】，可被取消。' },
+      { n: '暗影爆', t: 'mag', d: '在被点名的玩家位置释放的可见圆形AOE。' }]},
+    '交错路恶意灵': { model: '地生人', sk: [
+      { n: '碎震强击', t: 'phys', d: '前方范围较远的扇形AOE，范围提示在读条即将结束时出现，附加击退效果。' }]},
+    '召引古恶魔': { tag: '巡逻', sk: [
+      { n: '黑暗神圣', t: 'mag', d: '周身圆形AOE，范围提示在读条即将结束时出现，可被打断。' },
+      { n: '生命停止', t: 'mag', d: '前方大范围扇形AOE，范围提示在读条即将结束时出现，无法穿透墙壁。' }]},
+    '召引阿刻戎': { sk: [
+      { n: '权威斩', t: 'phys', d: '向举剑一侧释放180°大范围扇形AOE，无法穿透墙壁。' }]},
+    '召引古辛': { sk: [
+      { n: '左侧震击', t: 'phys', d: '左侧的大范围矩形AOE，使用后随即向右侧释放。' },
+      { n: '右侧震击', t: 'phys', d: '右侧的大范围矩形AOE，使用后随即向左侧释放。' }]},
+    '召引破坏本能': { model: '冥鬼之眼', sk: [
+      { n: '死亡视线', t: 'none', d: '以自身为中心释放的全屏攻击，正面90°范围内出现该目标会被附加10s可驱散的【死亡宣告】。' },
+      { n: '怪光线', t: 'mag', d: '较宽的前方长直线AOE，范围提示在读条即将结束时出现，可穿透墙壁。' }]},
+
+    // wiki 普通敌人表未收录，但日志中实际出现
+    '拟态怪': { note: ['wiki 未收录机制（宝箱拟态）。技能名取自 ACT 日志。'], sk: [
+      { n: '死地', t: '', d: '' },
+      { n: '怨念', t: '', d: '' }]},
+    '雷球': { note: ['第80朝圣路 BOSS「雷气循环」召唤物。'], sk: [
+      { n: '雷气放射', t: 'mag', d: '连线末端的雷球释放的大范围圆形AOE，附加15s【麻痹】。' }]},
+    '被侵蚀的食罪灵': { note: ['第99朝圣路 BOSS 双目标之一，光属性。需持【暗之回音】才能对其造成伤害。'], sk: [
+      { n: '净罪之环', t: 'mag', d: '全屏光属性AOE并将所有人吸引至场中，附加3s【止步】。随后沿相反时针方向扩散一圈产生圆形光属性AOE并在原地生成障壁，命中会被高额击退。' },
+      { n: '光耀之剑', t: 'mag', d: '双手在中间举大剑＝覆盖场中两列的光属性直线AOE；两手各持匕首于两侧＝两侧各两列的光属性直线AOE。' },
+      { n: '以太吸取', t: 'mag', d: '玩家持【暗之回音】则不受伤害；否则受到大伤害并为双目标回复远高于伤害量的生命值。' }]},
+    '仆从石像魔': { note: ['第99朝圣路「棘刺尾」打破窗户后释放。'], sk: [
+      { n: '染血爪', t: 'phys', d: '无读条，对第一仇恨目标的物理单体大伤害攻击。' },
+      { n: '恐怖眼', t: 'mag', d: '在随机玩家位置释放的范围可见圆形AOE。' }]}
+  };
+
+  var BOSSES = {
+    80: { name: '得到宽恕的不敬', sk: [
+      { n: '紫雷环戒', d: '以自身为中心释放大范围雷属性环形AOE，范围提示在读条即将结束时出现，附加15s【麻痹】。' },
+      { n: '伤痛圆戒', d: '以自身为中心释放暗属性圆形AOE，范围提示在读条即将结束时出现，附加15s【出血】。' },
+      { n: '亵渎之光', d: '根据胡须指向释放前方或后方半场光属性AOE，范围提示在读条即将结束时出现，与圆形和环形AOE共同使用。' },
+      { n: '雷气循环', d: '全屏AOE，在场地中生成数个雷球，随后连接所有雷球，连接路径上会造成伤害，连线末端的雷球会释放大范围圆形AOE雷气放射，后两种攻击附加15s【麻痹】。' },
+      { n: '雷气放射', d: '本体或连线末端的雷球释放的大范围圆形雷属性AOE，附加15s【麻痹】。' },
+      { n: '亡途苦旅', d: '全屏AOE，赋予所有玩家17s的【亡途黑暗】或【亡途重负】中的一种。' },
+      { n: '亡途黑暗', d: '效果时间结束时陷入无法战斗状态，受到光属性攻击亵渎之光后解除。' },
+      { n: '亡途重负', d: '每移动2m会增加档数，积攒到8档之后会陷入无法战斗状态。' }]},
+    90: { name: '马纳果达', sk: [
+      { n: '旋背击', d: '以自身为中心向发光手臂方向释放270度范围AOE，范围提示在读条即将结束时出现，同时生成4个指向魔法阵向场边甩去，覆盖两横与两纵区域。' },
+      { n: '魔阵光', d: '由指向魔法阵发出的直线AOE，范围提示在读条即将结束时出现。' },
+      { n: '横断冲', d: '左右90°扇形AOE，范围提示在读条即将结束时出现。' },
+      { n: '纵断冲', d: '前后90°扇形AOE，范围提示在读条即将结束时出现。' },
+      { n: '陨星', d: '在场地上随机生成4轮、每轮六个圆形可见范围AOE。' },
+      { n: '灭尽', d: '马纳果达移动到一正点的场边，同时在场地四行中的三行生成指向魔法阵。' }]},
+    99: { name: '卓异的悲寂',
+      intro: '场地有光/暗属性地块各五块，踩入获得3分钟【光之回音】或【暗之回音】。【光之回音】可攻击暗属性的卓异的悲寂，结束时变为9s【石化】；【暗之回音】可攻击光属性的被侵蚀的食罪灵，结束时变为9s【恐慌】。双目标共享一仇，无对应 buff 时无法造成伤害；血量差≥25% 时少的一方叠【体力持续恢复】、多的一方叠【伤害提高】（每层30%）。一方血量降至1获得【魂魄同谐】，另一方被击败前不会死。',
+      sk: [
+      { n: '净罪之环', d: '由被侵蚀的食罪灵发动，全屏光属性AOE并将所有人吸引至场中，附加3s【止步】。场中正方向上一点出现AOE预兆，沿相反时针方向快速扩散一圈先后判定产生圆形光属性AOE并在原地生成障壁，命中会被高额击退。随后发动障壁内的光属性AOE。' },
+      { n: '深渊烈焰', d: '由卓异的悲寂发动，分两次水平或垂直打开空间裂缝，各生成四个水晶，水晶红热化后沿裂缝方向持续发动步进式极高伤害圆形火属性AOE。四颗水晶必定位于一条斜线上，两条斜线必定平行，最终留下一角未被波及。' },
+      { n: '光耀之剑', d: '由被侵蚀的食罪灵发动，双手在中间举大剑＝覆盖场中两列的光属性直线AOE；两手各持匕首于两侧＝两侧各两列的光属性直线AOE。' },
+      { n: '烈焰锢', d: '由卓异的悲寂发动，身体两侧各生成一个锁链缠绕的火球，咏唱结束后全屏火属性AOE，附加2s【烈焰锢】，效果时间内移动会受到高额伤害。与火球二选一。' },
+      { n: '火球', d: '由卓异的悲寂发动，身体两侧各生成两个火球，咏唱结束时向四名玩家位置发动可回避火属性圆形AOE，附加1分钟【灼伤】。与烈焰锢二选一。' },
+      { n: '棘刺尾', d: '由卓异的悲寂发动，点名随机一人并举尾向其移动，点名消失后向其位置发动直线AOE。可打破场地后方窗户释放仆从石像魔；同一面窗第二次彻底破坏并释放第二只，第三次不生成敌人。' },
+      { n: '染血爪', d: '无读条，仆从石像魔对第一仇恨目标的物理单体大伤害攻击。' },
+      { n: '恐怖眼', d: '仆从石像魔在随机玩家位置释放的范围可见圆形AOE。' },
+      { n: '以太吸取', d: '双目标先后顺序随机发动。若玩家持有与其异属性的 buff（对卓异的悲寂为【光之回音】，对被侵蚀的食罪灵为【暗之回音】）则不受伤害；否则受到相应属性大伤害并为两者回复远高于伤害量的生命值。' }]}
+  };
+
+  var TYPE_TEXT = { phys: '物理', mag: '魔法', none: '无伤害' };
+
+  // BOSS 也走 03 行，并入同一张查找表才能被跟踪
+  for (var bf in BOSSES) {
+    MOBS[BOSSES[bf].name] = { boss: +bf, intro: BOSSES[bf].intro, sk: BOSSES[bf].sk };
+  }
+  // 杜松香召唤的友方 NPC 与陷阱，日志里同样走 03 行，必须排除
+  var IGNORE = { '陷阱': 1, '菲奥·乌儿': 1, '缇坦妮雅': 1, '光球': 1 };
+
+  // 语音播报：键 = 怪名|技能名，值 = 范围短语。读条开始(20行)即播报；
+  // 无读条技能在使用行(21/22行)兜底播报；同一怪同一技能 30 秒内只播一次。
+  // 钢铁=周身圆形 / 月环=环形 / 扇形 / 十字 / 直线；方向+大 按需前缀。
+  var VOICE = {
+    '交错路食岩狼|轻快冲': '无读条，击退，中毒',
+    '交错路泡沫奶黄怪|烈炎': '随机玩家位置',
+    '交错路铰颌蚁|喷沙': '前方扇形',
+    '得到宽恕的怀疑|砂砾雨': '前方直线',
+    '交错路爆岩怪|炸裂': '钢铁',
+    '交错路爆岩怪|自爆': '大钢铁',
+    '得到宽恕的恶意|圆环双水流': '先钢铁再月环',
+    '得到宽恕的恶意|环圆双水流': '先月环再钢铁',
+    '得到宽恕的傲慢|连踢': '四次前方扇形',
+    '交错路巨虫|地震': '钢铁',
+    '交错路阿米特|推翻': '钢铁',
+    '得到宽恕的争执|迅猛回旋': '钢铁',
+    '得到宽恕的争执|呵斥': '前方大扇形',
+    '得到宽恕的腐败|旋转火力': '非战斗长读条大钢铁',
+    '得到宽恕的腐败|正面火力': '前方扇形',
+    '得到宽恕的虚夸|环状射线': '大月环',
+    '得到宽恕的虚夸|十字射线': '大十字',
+    '得到宽恕的诋毁|造山风暴': '随机玩家位置大圆形',
+    '得到宽恕的诋毁|变质岩波': '远距离前方扇形',
+    '交错路异豺|夜冲击': '前方扇形',
+    '交错路异豺|咬杀': '可打断',
+    '召引格雷姆林|臭嘴': '减速',
+    '召引格雷姆林|利爪': '前方扇形',
+    '交错路卡部斯|黑暗': '随机玩家位置',
+    '交错路卡部斯|昏暗': '前方大扇形',
+    '交错路骑兵|残杀': '3次击退',
+    '交错路骑兵|风暴斩': '前方扇形',
+    '召引小恶灵|虚空冰冻': '随机玩家位置',
+    '召引小恶灵|冰结陷阱': '钢铁',
+    '召引梦魔|攻心欲火': '点名圆形',
+    '召引上级恶魔|深渊回转': '前方扇形',
+    '召引上级恶魔|深渊贯穿': '点名远程，可打断，麻痹',
+    '交错路卡玛|飞踢后摆尾': '前方直线',
+    '召引盖因|大凶眼': '背对',
+    '召引盖因|眼光弹': '随机玩家位置',
+    '召引刻耳柏洛斯|闪电': '前方圆形',
+    '召引刻耳柏洛斯|地狱爪袭': '前方扇形',
+    '召引刻耳柏洛斯|摆尾': '后方扇形',
+    '召引巴尔|火山泥流爆': '非战斗长读条大钢铁',
+    '召引巴尔|深渊射线': '前方大直线',
+    '召引行吟诗人|心魔': '钢铁',
+    '召引行吟诗人|昏暗': '快速前方扇形',
+    '召引洪巴巴|三重强击': '先3次单体再前方大扇形',
+    '召引洪巴巴|四重强击': '先4次单体再前方大扇形',
+    '召引洪巴巴|长啸': '前方大扇形',
+    '召引梦祸|梦祸视线': '细长前方直线',
+    '召引梦祸|死重爆': '大钢铁',
+    '交错路食人花|腐烂恶臭': '前方大直线',
+    '交错路食人花|黄金粉尘': '随机玩家位置',
+    '交错路紫罗兰三尖树|藤枝伏地': '前方扇形',
+    '交错路紫罗兰三尖树|根系纠缠': '随机玩家位置',
+    '召引玩偶|呀——': '钢铁',
+    '召引扎哈克|石化吐息': '前方大扇形',
+    '召引扎哈克|尾部打击': '瞬发后方大扇形',
+    '交错路座狼|三重猛击': '先3次单体再钢铁',
+    '交错路座狼|四重猛击': '先4次单体再钢铁',
+    '交错路座狼|重挥碎击': '钢铁',
+    '召引锯齿花|前方花蜜喷吐': '前方120°扇形',
+    '召引锯齿花|左侧花蜜喷吐': '左后方180°扇形',
+    '召引锯齿花|右侧花蜜喷吐': '右后方180°扇形',
+    '召引光棍|阿剌克涅之网': '点名圆形',
+    '召引光棍|暗影爆': '点名位置圆形',
+    '交错路恶意灵|碎震强击': '远距离前方扇形',
+    '召引古恶魔|黑暗神圣': '钢铁',
+    '召引古恶魔|生命停止': '前方大扇形',
+    '召引阿刻戎|权威斩': '举剑侧180°扇形',
+    '召引古辛|左侧震击': '左侧大矩形',
+    '召引古辛|右侧震击': '右侧大矩形',
+    '召引破坏本能|死亡视线': '背对',
+    '召引破坏本能|怪光线': '前方大直线',
+    '拟态怪|怨念': '打断怨念',
+    '雷球|雷气放射': '大圆形',
+    '被侵蚀的食罪灵|净罪之环': '全屏，吸引',
+    '被侵蚀的食罪灵|光耀之剑': '直线，看手',
+    '被侵蚀的食罪灵|以太吸取': '检查回音',
+    '仆从石像魔|恐怖眼': '随机玩家位置',
+    '得到宽恕的不敬|紫雷环戒': '大月环',
+    '得到宽恕的不敬|伤痛圆戒': '钢铁',
+    '得到宽恕的不敬|亵渎之光': '半场，看胡须',
+    '得到宽恕的不敬|雷气循环': '全屏，注意雷球',
+    '得到宽恕的不敬|雷气放射': '大圆形',
+    '得到宽恕的不敬|亡途苦旅': '全屏',
+    '马纳果达|旋背击': '270度扇形，看手臂',
+    '马纳果达|魔阵光': '直线',
+    '马纳果达|横断冲': '左右扇形',
+    '马纳果达|纵断冲': '前后扇形',
+    '马纳果达|陨星': '4轮圆形',
+    '马纳果达|灭尽': '3行魔法阵',
+    '卓异的悲寂|深渊烈焰': '连续火圈',
+    '卓异的悲寂|烈焰锢': '全屏，别动',
+    '卓异的悲寂|火球': '点名圆形',
+    '卓异的悲寂|棘刺尾': '点名直线',
+    '卓异的悲寂|以太吸取': '检查回音'
+  };
+
+  var el = {
+    floor: document.getElementById('floor'),
+    zone: document.getElementById('zone'),
+    head: document.getElementById('head'),
+    traps: document.getElementById('traps'),
+    state: document.getElementById('state'),
+    voice: document.getElementById('voice'),
+    cfgBtn: document.getElementById('cfgBtn'),
+    cfgPanel: document.getElementById('cfgPanel'),
+    cfgMech: document.getElementById('cfgMech'),
+    cfgDeath: document.getElementById('cfgDeath'),
+    cfgLow: document.getElementById('cfgLow'),
+    cfgPct: document.getElementById('cfgPct'),
+    cfgHint: document.getElementById('cfgHint'),
+    foldBtn: document.getElementById('foldBtn'),
+    mini: document.getElementById('mini'),
+    miniFloor: document.getElementById('miniFloor'),
+    list: document.getElementById('list')
+  };
+
+  var zoneName = '';
+  var floor = 0;
+  var floorLo = 0, floorHi = 0;
+  var inDungeon = false;
+  var connected = false;
+  var mobs = {};          // id -> { name, data, order, cast, flash, flashSkill }
+  var openMap = {};       // 怪名 -> 是否手动展开
+  var orderSeq = 0;
+  var lastCombat = 0;
+  var bossFloor = 0;
+  // 陷阱按玩家距离流式下发（同 id 反复 03/04），只能去重累计，不能数当前存活
+  var trapSeen = {};
+  var trapUsed = {};
+  var trapsCleared = false;
+  var dirty = true;
+  var timer = null;
+  var folded = false;
+
+  // 折叠只改显示，解析/播报/计时照常运行；宿主窗口尺寸不变，
+  // 透明像素不拦鼠标（分层窗口按 alpha 命中），图标可点可拖。
+  function setFolded(on) {
+    folded = !!on;
+    document.body.className = folded ? 'folded' : '';
+    if (folded) {
+      el.cfgPanel.className = '';
+      el.cfgBtn.className = '';
+    }
+  }
+
+  // 额外提醒：队友死亡(25)、自身诅咒(26/30 的 43F)、自身半血(39/38/24/21/22/26)
+  var selfId = '';
+  var selfHp = { cur: 0, max: 0, low: false };
+  var curseOn = false;
+
+  var voiceOn = true;
+  var lastVoiceText = '';
+  var lastVoiceTime = 0;
+  var voiceHistory = [];   // 供浏览器回放核对：{text, time}
+  try { voiceOn = localStorage.getItem('pilgrimVoice') !== '0'; } catch (e) {}
+
+  // 播报分类开关与低血量阈值（默认全开、50%）
+  var alertCfg = { mech: true, death: true, low: true, lowPct: 50 };
+  function clampPct(v) {
+    v = Math.round(+v);
+    if (!isFinite(v)) v = 50;
+    return Math.max(1, Math.min(99, v));
+  }
+  try {
+    var rawAlerts = localStorage.getItem('pilgrimAlerts');
+    if (rawAlerts) {
+      var oc = JSON.parse(rawAlerts);
+      if (oc && typeof oc === 'object') {
+        if (oc.mech === false || oc.mech === 0) alertCfg.mech = false;
+        if (oc.death === false || oc.death === 0) alertCfg.death = false;
+        if (oc.low === false || oc.low === 0) alertCfg.low = false;
+        if (oc.lowPct !== undefined) alertCfg.lowPct = clampPct(oc.lowPct);
+      }
+    }
+  } catch (e) {}
+  function saveAlerts() {
+    try { localStorage.setItem('pilgrimAlerts', JSON.stringify(alertCfg)); } catch (e) {}
+  }
+
+  function renderVoice() {
+    el.voice.textContent = voiceOn ? '语音' : '静音';
+    el.voice.className = voiceOn ? '' : 'off';
+  }
+
+  function renderCfg() {
+    el.cfgMech.checked = alertCfg.mech;
+    el.cfgDeath.checked = alertCfg.death;
+    el.cfgLow.checked = alertCfg.low;
+    el.cfgPct.value = alertCfg.lowPct;
+    var rearm = Math.min(100, alertCfg.lowPct + 10);
+    el.cfgHint.textContent = '跌破 ' + alertCfg.lowPct + '% 播一次，回到 ' + rearm + '% 以上重新启用';
+  }
+
+  // 直接走 ACT 的 TTS（OverlayPlugin 原生 say -> ActGlobals.TTS -> ACT.TTS_CN），不依赖 Cactbot
+  function speak(text) {
+    voiceHistory.push({ text: text, time: Date.now() });
+    if (voiceHistory.length > 50) voiceHistory.shift();
+    if (!voiceOn) return;
+    var now = Date.now();
+    if (text === lastVoiceText && now - lastVoiceTime < 2500) return;
+    lastVoiceText = text;
+    lastVoiceTime = now;
+    if (window.OverlayPluginApi && window.OverlayPluginApi.callHandler) {
+      try {
+        window.OverlayPluginApi.callHandler(JSON.stringify({ call: 'say', text: text }), function () {});
+      } catch (e) {}
+    }
+  }
+
+  // 自身低血量提醒：跌破阈值播「低血量预警」，回到阈值+10%以上才重新武装
+  function trackSelfHp(id, cur, max) {
+    if (!selfId || id !== selfId) return;
+    cur = +cur; max = +max;
+    if (!isFinite(cur) || !isFinite(max) || !(max > 0) || cur < 0) return;
+    selfHp.cur = cur;
+    selfHp.max = max;
+    if (cur <= 0) { selfHp.low = false; return; }
+    var ratio = cur / max;
+    var threshold = alertCfg.lowPct / 100;
+    var rearm = Math.min(100, alertCfg.lowPct + 10) / 100;
+    if (ratio < threshold) {
+      if (!selfHp.low && alertCfg.low) {
+        selfHp.low = true;
+        speak('低血量预警');
+      }
+    } else if (ratio >= rearm) {
+      selfHp.low = false;
+    }
+  }
+
+  function voiceKey(mobName, skillName) { return mobName + '|' + skillName; }
+
+  function voicePhraseFor(mobName, sk) {
+    var p = VOICE[voiceKey(mobName, sk.n)];
+    if (p) return p;
+    var parts = sk.n.split('/');
+    for (var i = 0; i < parts.length; i++) {
+      p = VOICE[voiceKey(mobName, parts[i])];
+      if (p) return p;
+    }
+    return null;
+  }
+
+  // 去掉与语音简称重复的范围描述，保留附加效果等补充信息
+  function rangeExtra(d) {
+    var LATE = '范围提示在读条即将结束时出现';
+    var i = d.indexOf(LATE);
+    if (i >= 0) return d.slice(i + LATE.length);
+    var a = d.indexOf('AOE');
+    if (a >= 0) return d.slice(a + 3);
+    return d;
+  }
+
+  function voiceDescHtml(phrase, d) {
+    var extra = rangeExtra(d || '').replace(/^[，,。.；;\s]+/, '');
+    return '<b>' + esc(phrase) + '</b>' + (extra ? '，' + debuff(extra) : '');
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function debuff(s) {
+    return esc(s).replace(/【([^】]+)】/g, '<b>$1</b>');
+  }
+
+  function reset() {
+    mobs = {};
+    orderSeq = 0;
+    floor = 0;
+    bossFloor = 0;
+    trapSeen = {};
+    trapUsed = {};
+    trapsCleared = false;
+    selfHp.cur = 0;
+    selfHp.max = 0;
+    selfHp.low = false;
+    curseOn = false;
+    dirty = true;
+  }
+
+  function skillMatches(sk, name) {
+    if (sk.n === name) return true;
+    var parts = sk.n.split('/');
+    for (var i = 0; i < parts.length; i++) if (parts[i] === name) return true;
+    return false;
+  }
+
+  function findSkill(data, name) {
+    if (!data || !data.sk) return null;
+    for (var i = 0; i < data.sk.length; i++) if (skillMatches(data.sk[i], name)) return data.sk[i];
+    return null;
+  }
+
+  function touchCombat() {
+    lastCombat = Date.now();
+  }
+
+  function isPlayer(id) {
+    return !!id && id.indexOf('10') === 0;
+  }
+
+  // 日志里没有「敌人当前目标」字段，也没有脱战通知，
+  // 所以仇恨一旦建立就保留到该怪消失(04)或换层重置。
+  function markHate(m) {
+    if (m && !m.hate) { m.hate = true; dirty = true; }
+  }
+
+  function handleLine(f) {
+    var type = f[0];
+
+    if (type === '01') {
+      zoneName = f[3] || '';
+      inDungeon = zoneName.indexOf('朝圣交错路') === 0;
+      reset();
+      var m = /第(\d+)～(\d+)朝圣路/.exec(zoneName);
+      if (m) { floorLo = +m[1]; floorHi = +m[2]; } else { floorLo = floorHi = 0; }
+      dirty = true;
+      return;
+    }
+
+    if (type === '02') {
+      selfId = f[2] || '';
+      return;
+    }
+
+    if (!inDungeon) return;
+
+    if (type === '00') {
+      if (f[2] !== '0839') return;
+      var msg = f[4] || '';
+      var fm = /^第(\d+)朝圣路$/.exec(msg);
+      if (fm) {
+        floor = +fm[1];
+        if (BOSSES[floor]) bossFloor = floor;
+        dirty = true;
+      } else if (msg.indexOf('任务开始') >= 0) {
+        reset();
+      } else if (msg === '成功进行了传送！') {
+        // 换层时刻，早于新层陷阱行；层数消息反而滞后数秒，不能用作重置点
+        trapSeen = {};
+        trapUsed = {};
+        trapsCleared = false;
+        dirty = true;
+      } else if (msg.indexOf('陷阱全部被清除') >= 0) {
+        // 清除后陷阱实体仍会残留广播，以消息为准
+        trapsCleared = true;
+        dirty = true;
+      }
+      return;
+    }
+
+    if (type === '03') {
+      var id = f[2], name = f[3];
+      trackSelfHp(id, f[11], f[12]);
+      if (!id || id.charAt(0) !== '4') return;
+      if (name === '陷阱') {
+        if (!trapsCleared && !trapSeen[id]) { trapSeen[id] = 1; dirty = true; }
+        return;
+      }
+      if (IGNORE[name]) return;
+      var data = MOBS[name];
+      if (!data) return;
+      if (!mobs[id]) {
+        mobs[id] = { name: name, data: data, order: orderSeq++, cast: null, flash: 0, flashSkill: '', hate: false, voiceDone: null };
+        dirty = true;
+      }
+      return;
+    }
+
+    if (type === '04') {
+      if (mobs[f[2]]) { delete mobs[f[2]]; dirty = true; }
+      return;
+    }
+
+    if (type === '20') {
+      var mob = mobs[f[2]];
+      if (!mob) return;
+      if (isPlayer(f[6])) markHate(mob);
+      var dur = parseFloat(f[8]);
+      if (!(dur > 0)) return;
+      var now20 = Date.now();
+      mob.cast = { name: f[5], start: now20, dur: dur * 1000 };
+      mob.flash = 0;
+      var sk20 = findSkill(mob.data, f[5]);
+      var vp = (sk20 && sk20.warn) || VOICE[voiceKey(mob.name, f[5])];
+      if (vp && alertCfg.mech) {
+        speak(vp);
+        mob.voiceDone = { name: f[5], time: now20 };
+      }
+      touchCombat();
+      dirty = true;
+      return;
+    }
+
+    if (type === '21' || type === '22') {
+      trackSelfHp(f[6], f[24], f[25]);
+      if (f[3] === '陷阱' && trapSeen[f[2]] && !trapUsed[f[2]]) {
+        trapUsed[f[2]] = 1;
+        dirty = true;
+      }
+      var src = mobs[f[2]];
+      if (src) {
+        var wasCast = !!(src.cast && src.cast.name === f[5]);
+        if (wasCast) src.cast = null;
+        if (findSkill(src.data, f[5])) { src.flash = Date.now(); src.flashSkill = f[5]; dirty = true; }
+        if (!wasCast) {
+          var sk21 = findSkill(src.data, f[5]);
+          var vv = (sk21 && sk21.warn) || VOICE[voiceKey(src.name, f[5])];
+          var now21 = Date.now();
+          var spoken = src.voiceDone && src.voiceDone.name === f[5] && now21 - src.voiceDone.time < 30000;
+          if (vv && !spoken && alertCfg.mech) {
+            speak(vv);
+            src.voiceDone = { name: f[5], time: now21 };
+          }
+        }
+        if (isPlayer(f[6])) markHate(src);
+        touchCombat();
+      }
+      // 玩家打到已跟踪的怪：开怪即建立仇恨
+      var tgt = mobs[f[6]];
+      if (tgt) {
+        touchCombat();
+        if (isPlayer(f[2])) markHate(tgt);
+      }
+      return;
+    }
+
+    if (type === '24') { trackSelfHp(f[2], f[7], f[8]); return; }
+    if (type === '38') { trackSelfHp(f[2], f[5], f[6]); return; }
+    if (type === '39') { trackSelfHp(f[2], f[4], f[5]); return; }
+
+    if (type === '25') {
+      if (isPlayer(f[2])) {
+        if (alertCfg.death && selfId && f[2] !== selfId) speak('注意：' + (f[3] || '队友') + '死亡');
+        else if (f[2] === selfId) selfHp.low = false;
+      }
+      return;
+    }
+
+    if (type === '26') {
+      trackSelfHp(f[7], f[10], f[11]);
+      if (f[7] === selfId && (f[2] === '43F' || f[3] === '诅咒') && !curseOn) {
+        curseOn = true;
+        if (alertCfg.mech) speak('中了诅咒');
+      }
+      var s26 = mobs[f[5]], t26 = mobs[f[7]];
+      if (s26 && isPlayer(f[7])) markHate(s26);
+      if (t26 && isPlayer(f[5])) markHate(t26);
+      return;
+    }
+
+    if (type === '30') {
+      if (f[7] === selfId && (f[2] === '43F' || f[3] === '诅咒')) curseOn = false;
+      return;
+    }
+  }
+
+  function activeBoss() {
+    if (bossFloor && BOSSES[bossFloor]) {
+      var b = BOSSES[bossFloor];
+      for (var id in mobs) if (mobs[id].name === b.name) return { floor: bossFloor, b: b, id: id };
+    }
+    for (var id2 in mobs) {
+      for (var fl in BOSSES) if (BOSSES[fl].name === mobs[id2].name) return { floor: +fl, b: BOSSES[fl], id: id2 };
+    }
+    return null;
+  }
+
+  function skillHtml(sk, isActive, isFlash, mobName) {
+    var cls = 'skill' + (isActive ? ' active' : '') + (isFlash ? ' flash' : '');
+    var h = '<div class="' + cls + '" data-skill="' + esc(sk.n) + '">';
+    h += '<div class="sline"><span class="sname">' + esc(sk.n) + '</span>';
+    if (sk.t && TYPE_TEXT[sk.t]) h += '<span class="stype ' + sk.t + '">' + TYPE_TEXT[sk.t] + '</span>';
+    if (isActive) h += '<span class="scast"></span>';
+    h += '</div>';
+    var vp = mobName ? voicePhraseFor(mobName, sk) : null;
+    if (vp) h += '<div class="sdesc">' + voiceDescHtml(vp, sk.d) + '</div>';
+    else if (sk.d) h += '<div class="sdesc">' + debuff(sk.d) + '</div>';
+    else h += '<div class="sdesc">（wiki 未收录说明）</div>';
+    if (isActive) h += '<div class="bar"><i></i></div>';
+    return h + '</div>';
+  }
+
+  function cardHtml(g, isBoss) {
+    var casting = !!g.cast;
+    var flashing = g.flash && (Date.now() - g.flash < 1200);
+    var cls = 'card' + (casting ? ' casting' : '') + (isBoss ? ' boss' : '') +
+              (g.hate ? ' hate' : '') + (flashing ? ' fired' : '') + (g.open ? ' open' : '');
+    var tag = [];
+    if (g.data.tag) tag.push(g.data.tag);
+    if (g.data.model) tag.push(g.data.model);
+
+    var h = '<div class="' + cls + '" data-name="' + esc(g.name) + '">';
+    h += '<div class="chead"><span class="cname">' + esc(g.name) + '</span>' +
+         '<span class="ctag">' + esc(tag.join(' · ')) + '</span>' +
+         (g.count > 1 && !isBoss ? '<span class="cnum">×' + g.count + '</span>' : '') +
+         (g.hate ? '<span class="chate">仇恨</span>' : '') + '</div>';
+
+    if (isBoss && g.data.intro) h += '<div class="intro">' + debuff(g.data.intro) + '</div>';
+    if (g.data.note) {
+      for (var i = 0; i < g.data.note.length; i++) h += '<div class="note">' + debuff(g.data.note[i]) + '</div>';
+    }
+    var sk = g.data.sk || [];
+    for (var j = 0; j < sk.length; j++) {
+      var active = casting && skillMatches(sk[j], g.cast.name);
+      var flash = !active && flashing && g.flashSkill === sk[j].n;
+      h += skillHtml(sk[j], active, flash, g.name);
+    }
+    return h + '</div>';
+  }
+
+  function render() {
+    dirty = false;
+    el.zone.textContent = zoneName || '朝圣交错路';
+    el.floor.textContent = floor ? ('第' + floor + '层') : (floorLo ? (floorLo + '-' + floorHi) : '--');
+
+    var trapN = 0;
+    for (var tid in trapSeen) if (!trapUsed[tid]) trapN++;
+    el.traps.textContent = trapsCleared ? '陷阱 已清除' : '陷阱 ' + trapN;
+    el.traps.className = trapsCleared ? 'cleared' : '';
+    el.traps.style.display = inDungeon ? '' : 'none';
+
+    var inCombat = Date.now() - lastCombat < 8000;
+    if (!connected) { el.state.textContent = '未连接'; el.state.className = ''; }
+    else if (!inDungeon) { el.state.textContent = '副本外'; el.state.className = ''; }
+    else { el.state.textContent = inCombat ? '战斗中' : '探索中'; el.state.className = inCombat ? 'on' : ''; }
+
+    el.mini.className = (inDungeon && inCombat) ? 'combat' : '';
+    el.miniFloor.textContent = floor ? floor : (floorLo ? floorLo : '');
+    el.miniFloor.style.display = (inDungeon && (floor || floorLo)) ? '' : 'none';
+
+    // 标题栏窄窗会换行，设置面板跟随其实际高度下挂，避免盖住第二行按钮
+    var headH = el.head.offsetHeight;
+    if (headH !== render.headH) {
+      render.headH = headH;
+      el.cfgPanel.style.top = (headH + 2) + 'px';
+    }
+
+    var boss = activeBoss();
+    var groups = {};
+    for (var id in mobs) {
+      var m = mobs[id];
+      var g = groups[m.name];
+      if (!g) {
+        g = groups[m.name] = { name: m.name, data: m.data, count: 0, order: m.order,
+                               cast: null, flash: 0, flashSkill: '', hate: false, open: !!openMap[m.name] };
+      }
+      g.count++;
+      if (m.order < g.order) g.order = m.order;
+      if (m.hate) g.hate = true;
+      if (m.cast && (!g.cast || m.cast.start + m.cast.dur < g.cast.start + g.cast.dur)) g.cast = m.cast;
+      if (m.flash > g.flash) { g.flash = m.flash; g.flashSkill = m.flashSkill; }
+    }
+    var names = Object.keys(groups);
+    names.sort(function (a, b) {
+      var ga = groups[a], gb = groups[b];
+      var ta = ga.cast ? 0 : (ga.hate ? 1 : 2);
+      var tb = gb.cast ? 0 : (gb.hate ? 1 : 2);
+      if (ta !== tb) return ta - tb;
+      var ba = boss && ga.name === boss.b.name ? 0 : 1;
+      var bb = boss && gb.name === boss.b.name ? 0 : 1;
+      if (ba !== bb) return ba - bb;
+      return ga.order - gb.order;
+    });
+
+    if (!inDungeon) {
+      el.list.innerHTML = '<div id="empty">未在朝圣交错路。<br>数据范围：第71～99朝圣路（39 种敌人 + 第80/90/99 BOSS + 4 个特殊条目）</div>';
+      return;
+    }
+    if (!names.length) {
+      el.list.innerHTML = '<div id="empty">本层尚未发现已收录的敌人。<br>数据范围：第71～99朝圣路。第71层以下的敌人不在本悬浮窗资料内。</div>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < names.length; i++) {
+      html += cardHtml(groups[names[i]], !!(boss && boss.b.name === names[i]));
+    }
+    el.list.innerHTML = html;
+
+    var heads = el.list.querySelectorAll('.chead');
+    for (var k = 0; k < heads.length; k++) {
+      heads[k].addEventListener('click', function () {
+        var name = this.parentNode.getAttribute('data-name');
+        openMap[name] = !openMap[name];
+        dirty = true;
+        render();
+      });
+    }
+
+    var firstCasting = el.list.querySelector('.card.casting');
+    if (firstCasting) firstCasting.scrollIntoView({ block: 'nearest' });
+  }
+
+  function tick() {
+    var now = Date.now();
+    var anyCast = false, needRender = false;
+
+    for (var id in mobs) {
+      var m = mobs[id];
+      if (m.cast) {
+        var left = m.cast.start + m.cast.dur - now;
+        if (left <= 0) { m.cast = null; needRender = true; continue; }
+        anyCast = true;
+        var card = el.list.querySelector('.card[data-name="' + m.name + '"]');
+        if (card) {
+          var num = card.querySelector('.scast');
+          var bar = card.querySelector('.bar i');
+          if (num) num.textContent = (left / 1000).toFixed(1) + 's';
+          if (bar) bar.style.width = (100 * left / m.cast.dur) + '%';
+        }
+      }
+      if (m.flash && now - m.flash >= 1200) { m.flash = 0; needRender = true; }
+    }
+
+    if (needRender) dirty = true;
+    if (dirty) render();
+
+    var combatOn = now - lastCombat < 8000;
+    if (combatOn !== tick.lastCombat) { tick.lastCombat = combatOn; dirty = true; }
+
+    timer = window.setTimeout(tick, anyCast ? 80 : 300);
+  }
+
+  function onEvent(msg) {
+    if (!msg || msg.type !== 'LogLine') return;
+    var f = msg.line;
+    if (!f || !f.length) return;
+    if (!connected) { connected = true; dirty = true; }
+    handleLine(f);
+  }
+
+  function initApi() {
+    if (window.OverlayPluginApi && window.OverlayPluginApi.ready) {
+      window.__OverlayCallback = onEvent;
+      window.OverlayPluginApi.callHandler(JSON.stringify({ call: 'subscribe', events: ['LogLine'] }), function () {});
+      connected = true;
+      dirty = true;
+      return;
+    }
+    window.setTimeout(initApi, 300);
+  }
+
+  // 供浏览器回放测试使用：无 ACT 环境下也能驱动同一套解析与渲染
+  window.__pilgrimTest = {
+    feed: function (raw) { onEvent({ type: 'LogLine', line: raw.split('|'), rawLine: raw }); },
+    state: function () { return { zoneName: zoneName, floor: floor, inDungeon: inDungeon, mobs: mobs, connected: connected, trapSeen: trapSeen, trapUsed: trapUsed, trapsCleared: trapsCleared, selfId: selfId, selfHp: selfHp, curseOn: curseOn, folded: folded }; },
+    voice: function () { return voiceHistory.slice(); },
+    setVoice: function (on) { voiceOn = !!on; renderVoice(); },
+    fold: function () { return folded; },
+    setFold: function (on) { setFolded(on); },
+    settings: function () { return { mech: alertCfg.mech, death: alertCfg.death, low: alertCfg.low, lowPct: alertCfg.lowPct }; },
+    setSettings: function (s) {
+      if (!s) return;
+      if (s.mech !== undefined) alertCfg.mech = !!s.mech;
+      if (s.death !== undefined) alertCfg.death = !!s.death;
+      if (s.low !== undefined) { alertCfg.low = !!s.low; selfHp.low = false; }
+      if (s.lowPct !== undefined) { alertCfg.lowPct = clampPct(s.lowPct); selfHp.low = false; }
+      renderCfg();
+    },
+    render: function () { render(); }
+  };
+
+  el.foldBtn.addEventListener('click', function () { setFolded(true); });
+  el.mini.addEventListener('click', function () { setFolded(false); });
+  window.addEventListener('resize', function () { dirty = true; });
+
+  el.voice.addEventListener('click', function () {
+    voiceOn = !voiceOn;
+    try { localStorage.setItem('pilgrimVoice', voiceOn ? '1' : '0'); } catch (e) {}
+    renderVoice();
+  });
+
+  el.cfgBtn.addEventListener('click', function () {
+    var open = el.cfgPanel.className.indexOf('open') < 0;
+    el.cfgPanel.className = open ? 'open' : '';
+    el.cfgBtn.className = open ? 'open' : '';
+    if (open) el.cfgPanel.style.top = (el.head.offsetHeight + 2) + 'px';
+  });
+  el.cfgMech.addEventListener('change', function () {
+    alertCfg.mech = !!this.checked;
+    saveAlerts();
+  });
+  el.cfgDeath.addEventListener('change', function () {
+    alertCfg.death = !!this.checked;
+    saveAlerts();
+  });
+  el.cfgLow.addEventListener('change', function () {
+    alertCfg.low = !!this.checked;
+    selfHp.low = false;
+    saveAlerts();
+  });
+  el.cfgPct.addEventListener('change', function () {
+    alertCfg.lowPct = clampPct(this.value);
+    selfHp.low = false;
+    saveAlerts();
+    renderCfg();
+  });
+  renderVoice();
+  renderCfg();
+
+  initApi();
+  tick();
+})();
+</script>
+</body>
+</html>
